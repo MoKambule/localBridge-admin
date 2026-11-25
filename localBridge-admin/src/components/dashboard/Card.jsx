@@ -1,17 +1,28 @@
-function Card({ title, value }) {
+
+function Card({ title, value, percentage, color, trend }) {
+  const colors = {
+    aqua: 'bg-teal-50',
+    blue: 'bg-blue-50',
+    orange: 'bg-orange-50',
+    purple: 'bg-purple-50',
+    green: 'bg-green-50'
+  }
+
   return (
-    <div className="group bg-white p-1 rounded-lg border border-gray-200 shadow-sm
-                    hover:bg-[#116B72] hover:shadow-md
-                    transition duration-200 cursor-pointer">
+    <div className={`${colors[color]} rounded-xl p-4`}>
+      <p className="text-sm text-gray-600">{title}</p>
 
-      <p className="text-gray-500 text-xs font-semibold group-hover:text-white">
-        {title}
-      </p>
+      <div className="flex items-center justify-between mt-3">
+        <h2 className="text-2xl font-bold text-[#153E46]">
+          {value}
+        </h2>
 
-      <h2 className="text-xl font-bold text-[#153E46] mt-1 group-hover:text-white">
-        {value}
-      </h2>
-
+        <span className={`text-xs font-medium ${
+          trend === 'up' ? 'text-green-600' : 'text-red-500'
+        }`}>
+          {percentage}
+        </span>
+      </div>
     </div>
   )
 }
