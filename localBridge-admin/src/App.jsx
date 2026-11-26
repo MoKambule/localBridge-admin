@@ -2,6 +2,7 @@
 import Sidebar from './components/layout/Sidebar'
 import Card from './components/dashboard/Card'
 import RecentActivity from './components/dashboard/RecentActivity'
+import Applications from './components/provider/Applications'
 
 function App() {
   return (
@@ -56,6 +57,9 @@ function App() {
           {/* Recent Activity Table */}
           <div className="mt-6">
             <RecentActivity />
+          </div>
+          <div className="mt-6">
+            <Applications />
           </div>
 
         </div>
