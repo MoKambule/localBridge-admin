@@ -1,0 +1,67 @@
+# LocalBridge admin: Postgres + Flyway migrations + API + web.
+#
+#   docker compose up -d db migrate     # database only (run API and web with npm)
+#   docker compose up -d --build        # everything (web on http://localhost:8080)
+#   docker compose down                 # stop (keeps data)
+#   docker compose down -v              # stop and DELETE the database volume
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-localbridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localbridge101}
+      POSTGRES_DB: ${POSTGRES_DB:-localbridge}
+    ports:
+      # 5433 on your machine so it never clashes with the main app's database.
+      - '${DB_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER:-localbridge} -d ${POSTGRES_DB:-localbridge}
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Same tool the main Quarkus backend uses, so the schema history stays compatible.
+  migrate:
+    image: flyway/flyway:11
+    depends_on:
+      db:
+        condition: service_healthy
+    command: migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-localbridge}
+      FLYWAY_USER: ${POSTGRES_USER:-localbridge}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-localbridge101}
+      # Drop the seed location for anything that is not local development.
+      FLYWAY_LOCATIONS: ${FLYWAY_LOCATIONS:-filesystem:/flyway/sql/migration,filesystem:/flyway/sql/seed}
+      FLYWAY_CONNECT_RETRIES: 10
+    volumes:
+      - ./db/migration:/flyway/sql/migration:ro
+      - ./db/seed:/flyway/sql/seed:ro
+
+  api:
+    build: ./server
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-localbridge}:${POSTGRES_PASSWORD:-localbridge101}@db:5432/${POSTGRES_DB:-localbridge}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (32+ random characters)}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    expose:
+      - '4000'
+
+  web:
+    build: .
+    depends_on:
+      - api
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
+volumes:
+  pgdata:
